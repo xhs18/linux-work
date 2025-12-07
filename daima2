@@ -1,0 +1,112 @@
+#!/bin/bash
+
+# 模块基本信息
+MODULE_NAME="文件系统管理工具（sk23022）"
+VERSION="v1.0"
+
+# 显示模块帮助信息
+show_help() {
+    echo "=================================================="
+    echo "$MODULE_NAME $VERSION"
+    echo "=================================================="
+    echo "使用格式：$0 [功能选项] [参数]"
+    echo "功能选项说明："
+    echo "  -l [dir]  列出指定目录下的文件，按大小升序排序（默认当前目录）"
+    echo "  -s <dir> <type>  搜索指定目录下的特定类型文件（如 .sh、.py）"
+    echo "  -t [dir]  统计指定目录下文件的行数、字节数、权限（默认当前目录）"
+    echo "  --help    显示本帮助信息"
+    echo "=================================================="
+    echo "使用示例："
+    echo "  $0 -l /home/sk23022    # 列出 /home/sk23022 目录文件并按大小排序"
+    echo "  $0 -s ./code .py       # 搜索 ./code 目录下的所有 .py 文件"
+    echo "  $0 -t ./script         # 统计 ./script 目录下文件的相关信息"
+    echo "=================================================="
+}
+
+# 功能1：列出文件并按大小排序
+list_files_by_size() {
+    local dir=${1:-.}  # 默认为当前目录
+    # 检查目录是否存在
+    if [ ! -d "$dir" ]; then
+        echo "错误：目录 '$dir' 不存在或不是有效目录！"
+        return 1
+    fi
+    echo "=== 目录 '$dir' 下的文件（按大小升序排序，单位：字节）==="
+    echo "权限        大小（字节）  文件名"
+    echo "----------------------------------------"
+    # 列出文件（排除目录），按大小排序，格式化输出
+    ls -l "$dir" | grep -v '^d' | sort -k5n | awk '{printf "%-12s %-12d %s\n", $1, $5, $9}'
+}
+
+# 功能2：搜索特定类型文件
+search_specific_files() {
+    local dir=$1
+    local file_type=$2
+    # 检查参数是否完整
+    if [ -z "$dir" ] || [ -z "$file_type" ]; then
+        echo "错误：参数不完整！使用格式：$0 -s <目录> <文件类型>"
+        return 1
+    fi
+    # 检查目录是否存在
+    if [ ! -d "$dir" ]; then
+        echo "错误：目录 '$dir' 不存在或不是有效目录！"
+        return 1
+    fi
+    echo "=== 在目录 '$dir' 下搜索类型为 '$file_type' 的文件 ==="
+    # 递归搜索指定类型文件，排除权限不足的目录
+    find "$dir" -type f -name "*$file_type" 2>/dev/null
+    # 检查是否搜索到文件
+    if [ $? -ne 0 ] || [ -z "$(find "$dir" -type f -name "*$file_type" 2>/dev/null)" ]; then
+        echo "未搜索到类型为 '$file_type' 的文件！"
+    fi
+}
+
+# 功能3：统计文件信息（行数、字节数、权限）
+stat_file_info() {
+    local dir=${1:-.}
+    # 检查目录是否存在
+    if [ ! -d "$dir" ]; then
+        echo "错误：目录 '$dir' 不存在或不是有效目录！"
+        return 1
+    fi
+    echo "=== 目录 '$dir' 下文件统计信息 ==="
+    echo "文件名                行数    字节数    权限"
+    echo "--------------------------------------------"
+    # 遍历目录下所有文件（不递归子目录）
+    for file in "$dir"/*; do
+        if [ -f "$file" ]; then
+            local filename=$(basename "$file")
+            # 统计行数（处理空文件）
+            local lines=$(wc -l < "$file" 2>/dev/null || echo 0)
+            # 统计字节数
+            local bytes=$(wc -c < "$file" 2>/dev/null || echo 0)
+            # 获取文件权限
+            local perm=$(stat -c "%A" "$file" 2>/dev/null || echo "无权限")
+            # 格式化输出，对齐列
+            printf "%-20s %-6d %-8d %s\n" "$filename" "$lines" "$bytes" "$perm"
+        fi
+    done
+}
+
+# 主逻辑处理
+if [ $# -eq 0 ]; then
+    show_help
+elif [ "$1" == "--help" ]; then
+    show_help
+else
+    case "$1" in
+        -l)
+            list_files_by_size "$2"
+            ;;
+        -s)
+            search_specific_files "$2" "$3"
+            ;;
+        -t)
+            stat_file_info "$2"
+            ;;
+        *)
+            echo "错误：无效的功能选项 '$1'！"
+            echo "请使用 $0 --help 查看正确的操作方法。"
+            ;;
+    esac
+fi
