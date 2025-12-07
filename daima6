@@ -1,0 +1,67 @@
+import socket
+import sys
+
+# 服务器配置信息（任务书指定）
+SERVER_IP = "172.1.1.6"
+SERVER_PORT = 40000
+BUFFER_SIZE = 1024  # 数据缓冲区大小（1KB）
+ENCODING = "utf-8"  # 字符编码格式
+
+def tcp_communication_client():
+    """创建TCP客户端，与服务器进行通信"""
+    # 创建TCP套接字对象
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # 设置连接超时时间（5秒）
+    client_socket.settimeout(5)
+    
+    try:
+        # 尝试连接服务器
+        print(f"[连接状态] 正在连接服务器 {SERVER_IP}:{SERVER_PORT}...")
+        client_socket.connect((SERVER_IP, SERVER_PORT))
+        print(f"[连接状态] 成功连接到服务器 {SERVER_IP}:{SERVER_PORT}！")
+        print("[操作提示] 输入要发送的文本（支持四则运算表达式），输入 'quit' 退出客户端\n")
+        
+        # 循环发送和接收数据
+        while True:
+            # 获取用户输入
+            user_input = input("请输入发送内容：")
+            # 退出条件判断
+            if user_input.strip().lower() == "quit":
+                print("[退出状态] 正在断开与服务器的连接...")
+                break
+            # 检查输入是否为空
+            if not user_input.strip():
+                print("[错误提示] 发送内容不能为空，请重新输入！")
+                continue
+            
+            # 发送数据（字符串→字节流）
+            client_socket.send(user_input.encode(ENCODING))
+            print(f"[发送成功] 已发送：{user_input}")
+            
+            # 接收服务器反馈
+            try:
+                response_data = client_socket.recv(BUFFER_SIZE)
+                if not response_data:
+                    print("[连接状态] 服务器已主动断开连接！")
+                    break
+                # 字节流→字符串
+                response = response_data.decode(ENCODING)
+                print(f"[接收成功] 服务器反馈：{response}\n")
+            except socket.timeout:
+                print("[错误提示] 接收服务器反馈超时，请重新发送！\n")
+                continue
+    
+    except ConnectionRefusedError:
+        print(f"[错误提示] 连接失败！服务器 {SERVER_IP}:{SERVER_PORT} 未响应（可能未启动或网络不通）。")
+    except socket.timeout:
+        print(f"[错误提示] 连接超时！未能在5秒内连接到服务器 {SERVER_IP}:{SERVER_PORT}。")
+    except Exception as e:
+        print(f"[错误提示] 通信过程中发生异常：{str(e)}")
+    finally:
+        # 关闭套接字，释放资源
+        client_socket.close()
+        print("[连接状态] 客户端已关闭！")
+
+if __name__ == "__main__":
+    # 启动客户端
+    tcp_communication_client()
