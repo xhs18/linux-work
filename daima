@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# 工具集基本信息
+TOOL_NAME="Linux 多功能系统监测与工具集（sk23022）"
+VERSION="v1.0"
+
+# 显示帮助信息
+show_help() {
+    echo "=================================================="
+    echo "欢迎使用 $TOOL_NAME $VERSION"
+    echo "=================================================="
+    echo "使用格式：$0 [功能选项] [可选参数]"
+    echo "功能选项说明："
+    echo "  -f        进入文件系统管理模块（fs_sk23022.sh）"
+    echo "  -u        进入用户系统信息查看模块（user_sk23022.sh）"
+    echo "  -p        进入进程监测与管理模块（proc_sk23022.sh）"
+    echo "  -n        进入网络信息查看模块（net_sk23022.sh）"
+    echo "  -c        运行网络编程客户端模块（net_client_sk23022.py）"
+    echo "  --help    显示本帮助信息"
+    echo "=================================================="
+    echo "使用示例："
+    echo "  $0 -f                  # 启动文件系统管理模块"
+    echo "  $0 -c                  # 运行TCP网络客户端"
+    echo "  $0 --help              # 查看完整操作帮助"
+    echo "=================================================="
+}
+
+# 主逻辑处理
+if [ $# -eq 0 ]; then
+    # 无参数时默认显示帮助信息
+    show_help
+elif [ "$1" == "--help" ]; then
+    show_help
+else
+    # 根据选项切换至对应模块
+    case "$1" in
+        -f)
+            echo "=== 正在进入文件系统管理模块 ==="
+            # 检查子脚本是否存在
+            if [ -f "./fs_sk23022.sh" ]; then
+                ./fs_sk23022.sh "$@"  # 传递后续参数给子模块
+            else
+                echo "错误：文件系统管理脚本 fs_sk23022.sh 不存在！"
+            fi
+            ;;
+        -u)
+            echo "=== 正在进入用户系统信息查看模块 ==="
+            if [ -f "./user_sk23022.sh" ]; then
+                ./user_sk23022.sh "$@"
+            else
+                echo "错误：用户信息脚本 user_sk23022.sh 不存在！"
+            fi
+            ;;
+        -p)
+            echo "=== 正在进入进程监测与管理模块 ==="
+            if [ -f "./proc_sk23022.sh" ]; then
+                ./proc_sk23022.sh "$@"
+            else
+                echo "错误：进程管理脚本 proc_sk23022.sh 不存在！"
+            fi
+            ;;
+        -n)
+            echo "=== 正在进入网络信息查看模块 ==="
+            if [ -f "./net_sk23022.sh" ]; then
+                ./net_sk23022.sh "$@"
+            else
+                echo "错误：网络信息脚本 net_sk23022.sh 不存在！"
+            fi
+            ;;
+        -c)
+            echo "=== 正在运行网络编程客户端模块 ==="
+            if [ -f "./net_client_sk23022.py" ]; then
+                python3 ./net_client_sk23022.py
+            else
+                echo "错误：网络客户端程序 net_client_sk23022.py 不存在！"
+            fi
+            ;;
+        *)
+            # 处理无效选项
+            echo "错误：无效的功能选项 '$1'！"
+            echo "请使用 $0 --help 查看正确的操作方法。"
+            ;;
+    esac
+fi
