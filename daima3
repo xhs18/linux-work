@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# 模块基本信息
+MODULE_NAME="用户系统信息查看工具（sk23022）"
+VERSION="v1.0"
+
+# 显示模块帮助信息
+show_help() {
+    echo "=================================================="
+    echo "$MODULE_NAME $VERSION"
+    echo "=================================================="
+    echo "使用格式：$0 [功能选项]"
+    echo "功能选项说明："
+    echo "  -i        查看当前用户的详细信息（用户名、UID、家目录、Shell）"
+    echo "  -g        查看当前用户所属的所有用户组"
+    echo "  --help    显示本帮助信息"
+    echo "=================================================="
+    echo "使用示例："
+    echo "  $0 -i                  # 查看当前用户详细信息"
+    echo "  $0 -g                  # 查看当前用户所属用户组"
+    echo "=================================================="
+}
+
+# 功能1：查看当前用户详细信息
+show_user_detail() {
+    echo "=== 当前用户详细信息 ==="
+    local username=$(whoami)
+    local uid=$(id -u)  # 获取用户ID
+    local home_dir=$HOME  # 获取家目录
+    local shell=$SHELL    # 获取默认Shell
+    echo "用户名：$username"
+    echo "用户ID（UID）：$uid"
+    echo "家目录：$home_dir"
+    echo "默认Shell：$shell"
+}
+
+# 功能2：查看当前用户所属用户组
+show_user_groups() {
+    echo "=== 当前用户所属用户组 ==="
+    local groups_info=$(groups)
+    echo "$groups_info"
+    # 解析主组和附加组（可选优化）
+    local primary_group=$(id -gn)  # 主组
+    local secondary_groups=$(id -Gn | awk '{for(i=2;i<=NF;i++)printf $i" ";print ""}')  # 附加组
+    echo -e "\n主组：$primary_group"
+    echo "附加组：$secondary_groups"
+}
+
+# 主逻辑处理
+if [ $# -eq 0 ]; then
+    show_help
+elif [ "$1" == "--help" ]; then
+    show_help
+else
+    case "$1" in
+        -i)
+            show_user_detail
+            ;;
+        -g)
+            show_user_groups
+            ;;
+        *)
+            echo "错误：无效的功能选项 '$1'！"
+            echo "请使用 $0 --help 查看正确的操作方法。"
+            ;;
+    esac
+fi
