@@ -1,0 +1,91 @@
+#!/bin/bash
+
+# 模块基本信息
+MODULE_NAME="进程监测与管理工具（sk23022）"
+VERSION="v1.0"
+
+# 显示模块帮助信息
+show_help() {
+    echo "=================================================="
+    echo "$MODULE_NAME $VERSION"
+    echo "=================================================="
+    echo "使用格式：$0 [功能选项] [参数]"
+    echo "功能选项说明："
+    echo "  -l        按内存占比降序显示当前用户的所有进程"
+    echo "  -k <pid>  按PID关闭指定进程（仅支持当前用户进程）"
+    echo "  --help    显示本帮助信息"
+    echo "=================================================="
+    echo "使用示例："
+    echo "  $0 -l                  # 查看当前用户进程（按内存排序）"
+    echo "  $0 -k 12345            # 关闭PID为12345的当前用户进程"
+    echo "=================================================="
+}
+
+# 功能1：按内存占比显示当前用户进程
+list_processes_by_mem() {
+    echo "=== 当前用户进程（按内存占比降序排列）==="
+    echo "PID      内存占比（%）  进程名称"
+    echo "----------------------------------------"
+    # 筛选当前用户进程，按内存占比降序排序，格式化输出
+    ps -u $USER -o pid,%mem,cmd --no-headers 2>/dev/null | sort -k2nr | awk '{printf "%-8d %-14.2f %s\n", $1, $2, $3}'
+    # 检查是否有进程
+    if [ -z "$(ps -u $USER -o pid --no-headers 2>/dev/null)" ]; then
+        echo "当前用户暂无运行中的进程！"
+    fi
+}
+
+# 功能2：按PID关闭指定进程
+kill_specified_process() {
+    local pid=$1
+    # 检查PID是否为空
+    if [ -z "$pid" ]; then
+        echo "错误：缺少PID参数！使用格式：$0 -k <pid>"
+        return 1
+    fi
+    # 检查PID是否为数字
+    if ! [[ "$pid" =~ ^[0-9]+$ ]]; then
+        echo "错误：PID必须为有效的数字！"
+        return 1
+    fi
+    # 检查进程是否存在
+    if ! ps -p "$pid" >/dev/null 2>&1; then
+        echo "错误：PID为 $pid 的进程不存在！"
+        return 1
+    fi
+    # 检查进程是否属于当前用户
+    local proc_owner=$(ps -o user= -p "$pid" 2>/dev/null)
+    local current_user=$(whoami)
+    if [ "$proc_owner" != "$current_user" ]; then
+        echo "错误：PID为 $pid 的进程不属于当前用户，无权限关闭！"
+        return 1
+    fi
+    # 执行关闭操作
+    echo "正在关闭PID为 $pid 的进程（进程所有者：$proc_owner）..."
+    kill "$pid" 2>/dev/null
+    # 检查关闭结果
+    if ps -p "$pid" >/dev/null 2>&1; then
+        echo "错误：关闭进程 $pid 失败！可能需要使用 kill -9 $pid 强制关闭（谨慎使用）。"
+    else
+        echo "成功：PID为 $pid 的进程已关闭！"
+    fi
+}
+
+# 主逻辑处理
+if [ $# -eq 0 ]; then
+    show_help
+elif [ "$1" == "--help" ]; then
+    show_help
+else
+    case "$1" in
+        -l)
+            list_processes_by_mem
+            ;;
+        -k)
+            kill_specified_process "$2"
+            ;;
+        *)
+            echo "错误：无效的功能选项 '$1'！"
+            echo "请使用 $0 --help 查看正确的操作方法。"
+            ;;
+    esac
+fi
